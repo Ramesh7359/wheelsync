@@ -747,4 +747,10 @@ if os.path.isdir(CUSTOMER_DIR):
 # ============ RUN SERVER ============
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
+    # Disable auto-reload in production (when PORT is provided by the host).
+    # Pass the app object directly so it works regardless of working directory.
+    is_dev = os.environ.get("PORT") is None
+    if is_dev:
+        uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
+    else:
+        uvicorn.run(app, host="0.0.0.0", port=port)
