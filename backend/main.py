@@ -733,6 +733,11 @@ def serve_root():
     return _serve_index(CUSTOMER_DIR)
 
 
+@app.get("/healthz")
+def healthz():
+    return {"status": "ok"}
+
+
 def _serve_index(directory):
     index = os.path.join(directory, "index.html")
     if os.path.isfile(index):
