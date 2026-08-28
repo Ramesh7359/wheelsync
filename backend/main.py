@@ -704,10 +704,15 @@ def admin_bookings(status: str = None, db: Session = Depends(get_db),
 
 
 # ============ SERVE FRONTEND ============
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# Resolve directories from this file's location (independent of working directory)
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(BACKEND_DIR)
 CUSTOMER_DIR = os.path.join(BASE_DIR, "frontend")
 VENDOR_DIR = os.path.join(BASE_DIR, "vendor")
 ADMIN_DIR = os.path.join(BASE_DIR, "admin")
+
+print(f"[WheelSync] BASE_DIR={BASE_DIR}")
+print(f"[WheelSync] frontend exists: {os.path.isdir(CUSTOMER_DIR)} | vendor: {os.path.isdir(VENDOR_DIR)} | admin: {os.path.isdir(ADMIN_DIR)}")
 
 
 # Redirect /admin and /vendor (no trailing slash) to their index
@@ -721,6 +726,16 @@ def vendor_redirect():
     return RedirectResponse(url="/vendor/")
 
 
+# Explicit root route as a reliable fallback (serves customer index.html)
+@app.get("/")
+def serve_root():
+    index = os.path.join(CUSTOMER_DIR, "index.html")
+    if os.path.isfile(index):
+        return FileResponse(index)
+    raise HTTPException(status_code=404, detail="Frontend not found")
+
+
+# Mount sub-apps first (more specific paths), customer last (catch-all)
 if os.path.isdir(VENDOR_DIR):
     app.mount("/vendor", StaticFiles(directory=VENDOR_DIR, html=True), name="vendor")
 if os.path.isdir(ADMIN_DIR):
