@@ -720,6 +720,18 @@ def healthz():
     return {"status": "ok"}
 
 
+# Redirect no-slash to trailing-slash so /admin and /vendor both work.
+# These are registered before the mounts and only match the exact bare path.
+@app.get("/admin", include_in_schema=False)
+def _admin_slash():
+    return RedirectResponse(url="/admin/")
+
+
+@app.get("/vendor", include_in_schema=False)
+def _vendor_slash():
+    return RedirectResponse(url="/vendor/")
+
+
 # Mount static apps. Sub-paths first, customer catch-all last (same pattern as NearTutor).
 if os.path.isdir(VENDOR_DIR):
     app.mount("/vendor", StaticFiles(directory=VENDOR_DIR, html=True), name="vendor")
