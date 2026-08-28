@@ -715,38 +715,12 @@ print(f"[WheelSync] BASE_DIR={BASE_DIR}")
 print(f"[WheelSync] frontend exists: {os.path.isdir(CUSTOMER_DIR)} | vendor: {os.path.isdir(VENDOR_DIR)} | admin: {os.path.isdir(ADMIN_DIR)}")
 
 
-# Serve admin index for /admin and /admin/ (explicit routes, no mount conflict)
-@app.get("/admin")
-@app.get("/admin/")
-def serve_admin():
-    return _serve_index(ADMIN_DIR)
-
-
-@app.get("/vendor")
-@app.get("/vendor/")
-def serve_vendor():
-    return _serve_index(VENDOR_DIR)
-
-
-@app.get("/")
-def serve_root():
-    return _serve_index(CUSTOMER_DIR)
-
-
 @app.get("/healthz")
 def healthz():
     return {"status": "ok"}
 
 
-def _serve_index(directory):
-    index = os.path.join(directory, "index.html")
-    if os.path.isfile(index):
-        return FileResponse(index)
-    raise HTTPException(status_code=404, detail="Page not found")
-
-
-# Mount static assets (css/js/icons) for each app.
-# Named sub-paths first so they don't get shadowed by the root mount.
+# Mount static apps. Sub-paths first, customer catch-all last (same pattern as NearTutor).
 if os.path.isdir(VENDOR_DIR):
     app.mount("/vendor", StaticFiles(directory=VENDOR_DIR, html=True), name="vendor")
 if os.path.isdir(ADMIN_DIR):
@@ -758,10 +732,4 @@ if os.path.isdir(CUSTOMER_DIR):
 # ============ RUN SERVER ============
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
-    # Disable auto-reload in production (when PORT is provided by the host).
-    # Pass the app object directly so it works regardless of working directory.
-    is_dev = os.environ.get("PORT") is None
-    if is_dev:
-        uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
-    else:
-        uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
