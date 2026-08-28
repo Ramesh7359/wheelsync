@@ -715,27 +715,33 @@ print(f"[WheelSync] BASE_DIR={BASE_DIR}")
 print(f"[WheelSync] frontend exists: {os.path.isdir(CUSTOMER_DIR)} | vendor: {os.path.isdir(VENDOR_DIR)} | admin: {os.path.isdir(ADMIN_DIR)}")
 
 
-# Redirect /admin and /vendor (no trailing slash) to their index
+# Serve admin index for /admin and /admin/ (explicit routes, no mount conflict)
 @app.get("/admin")
-def admin_redirect():
-    return RedirectResponse(url="/admin/")
+@app.get("/admin/")
+def serve_admin():
+    return _serve_index(ADMIN_DIR)
 
 
 @app.get("/vendor")
-def vendor_redirect():
-    return RedirectResponse(url="/vendor/")
+@app.get("/vendor/")
+def serve_vendor():
+    return _serve_index(VENDOR_DIR)
 
 
-# Explicit root route as a reliable fallback (serves customer index.html)
 @app.get("/")
 def serve_root():
-    index = os.path.join(CUSTOMER_DIR, "index.html")
+    return _serve_index(CUSTOMER_DIR)
+
+
+def _serve_index(directory):
+    index = os.path.join(directory, "index.html")
     if os.path.isfile(index):
         return FileResponse(index)
-    raise HTTPException(status_code=404, detail="Frontend not found")
+    raise HTTPException(status_code=404, detail="Page not found")
 
 
-# Mount sub-apps first (more specific paths), customer last (catch-all)
+# Mount static assets (css/js/icons) for each app.
+# Named sub-paths first so they don't get shadowed by the root mount.
 if os.path.isdir(VENDOR_DIR):
     app.mount("/vendor", StaticFiles(directory=VENDOR_DIR, html=True), name="vendor")
 if os.path.isdir(ADMIN_DIR):
